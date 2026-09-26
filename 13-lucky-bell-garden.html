@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Lucky Cat Bell Garden · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>LUCKY CAT BELL GARDEN</h1><p class="caption">A three-bell rhythm garden. Tap each lane as a falling bell reaches its red mark. Twelve notes to win.</p><div id="pyxel-screen"></div><div class="control"><button data-key="KeyA">A</button><button data-key="KeyS">S</button><button data-key="KeyD">D</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Lucky Cat: Bell Garden
+# desc: A rhythm garden: follow the falling bells and collect a melody.
+import pyxel,math,random
+# Shared Lucky Cat maneki-neko mark. Warm paper, charcoal ink, restrained red, gold coin.
+# The figurine silhouette (raised paw, coin, collar, whiskers) follows Jacob&#x27;s brand brief.
+
+INK=1; PAPER=7; RED=8; GOLD=10
+
+def cat(cx,cy,scale=1,wave=0):
+    # all geometry integer-scaled; no invented mascot or gradient
+    def rect(x,y,w,h,c):pyxel.rect(cx+x*scale,cy+y*scale,w*scale,h*scale,c)
+    def line(x,y,xx,yy,c):pyxel.line(cx+x*scale,cy+y*scale,cx+xx*scale,cy+yy*scale,c)
+    def circ(x,y,r,c):pyxel.circ(cx+x*scale,cy+y*scale,max(1,r*scale),c)
+    # body and tucked tail
+    circ(-13,18,5,INK);circ(-13,18,3,PAPER)
+    rect(-12,5,25,28,INK);rect(-10,5,21,26,PAPER)
+    circ(0,7,13,INK);circ(0,8,11,PAPER)
+    # pointed ears and round face
+    pyxel.tri(cx-12*scale,cy+1*scale,cx-10*scale,cy-12*scale,cx-1*scale,cy-7*scale,INK)
+    pyxel.tri(cx+3*scale,cy-7*scale,cx+12*scale,cy-12*scale,cx+12*scale,cy+1*scale,INK)
+    pyxel.tri(cx-10*scale,cy-1*scale,cx-9*scale,cy-8*scale,cx-5*scale,cy-5*scale,RED)
+    pyxel.tri(cx+6*scale,cy-5*scale,cx+10*scale,cy-8*scale,cx+10*scale,cy-1*scale,RED)
+    circ(-5,7,1,INK);circ(5,7,1,INK);circ(0,10,1,RED)
+    line(-3,12,0,13,INK);line(0,13,3,12,INK)
+    for y in (9,12):line(-10,y,-16,y-1,INK);line(10,y,16,y-1,INK)
+    # red collar, bell; gold only appears on the koban
+    rect(-9,17,18,3,RED);circ(0,20,2,INK)
+    circ(0,27,5,INK);circ(0,27,4,GOLD);line(-2,27,2,27,INK)
+    # iconic raised right paw, gently animated
+    up=int(bool(wave));rect(11,-2-up*3,6,19,INK);rect(12,-1-up*3,4,16,PAPER)
+    circ(14,-4-up*3,4,INK);circ(14,-4-up*3,2,PAPER)
+
+W,H=256,192
+random.seed(12)
+NOTES=[(48,0),(112,1),(176,2),(112,1),(48,0),(176,2),(48,0),(112,1),(176,2),(48,0),(112,1),(176,2)]
+class Game:
+ def __init__(self):
+  pyxel.init(W,H,title=&#x27;Lucky Cat Bell Garden&#x27;,fps=30)
+  self.state=&#x27;title&#x27;;self.reset()
+  for i,m in enumerate([&#x27;T160 O4 C8&#x27;,&#x27;T160 O4 E8&#x27;,&#x27;T160 O4 G8&#x27;]):pyxel.sounds[i].mml(m)
+  pyxel.sounds[3].mml(&#x27;T80 O3 C8 R8 C8&#x27;);pyxel.run(self.update,self.draw)
+ def reset(self):
+  self.state=&#x27;title&#x27;;self.frame=0;self.score=0;self.streak=0;self.hearts=5;self.next=0;self.notes=[];self.flash=0
+ def play(self):
+  self.reset();self.state=&#x27;playing&#x27;
+ def update(self):
+  if self.state!=&#x27;playing&#x27;:
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):self.play()
+   return
+  self.frame+=1
+  if self.flash:self.flash-=1
+  if self.next&lt;len(NOTES) and self.frame&gt;=45+self.next*39:
+   lane=NOTES[self.next][1];self.notes.append([lane,-10,self.next]);self.next+=1
+  hit=-1
+  for i,k in enumerate([pyxel.KEY_A,pyxel.KEY_S,pyxel.KEY_D]):
+   if pyxel.btnp(k) or pyxel.btnp([pyxel.KEY_LEFT,pyxel.KEY_DOWN,pyxel.KEY_RIGHT][i]) or pyxel.btnp([pyxel.GAMEPAD1_BUTTON_X,pyxel.GAMEPAD1_BUTTON_A,pyxel.GAMEPAD1_BUTTON_B][i]):hit=i
+  if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_y&lt;155:hit=max(0,min(2,pyxel.mouse_x//(W//3)))
+  if hit&gt;=0:
+   candidates=[n for n in self.notes if n[0]==hit and abs(n[1]-119)&lt;21]
+   if candidates:
+    n=min(candidates,key=lambda v:abs(v[1]-119));self.notes.remove(n)
+    self.streak+=1;self.score+=100+min(500,self.streak*25);self.flash=10;pyxel.play(0,hit)
+   else:self.streak=0
+  for n in list(self.notes):
+   n[1]+=2.5
+   if n[1]&gt;141:
+    self.notes.remove(n);self.hearts-=1;self.streak=0;pyxel.play(0,3)
+    if self.hearts&lt;=0:self.state=&#x27;over&#x27;
+  if self.next==len(NOTES) and not self.notes and self.state==&#x27;playing&#x27;:self.state=&#x27;won&#x27;
+ def draw(self):
+  pyxel.cls(PAPER);pyxel.rect(0,0,W,25,INK)
+  pyxel.text(8,7,&#x27;LUCKY CAT / BELL GARDEN&#x27;,PAPER)
+  pyxel.text(8,17,&#x27;SCORE %05d&#x27;%self.score,GOLD);pyxel.text(112,17,&#x27;CHAIN %02d&#x27;%self.streak,PAPER)
+  pyxel.text(216,17,&#x27;H%d&#x27;%self.hearts,RED)
+  for lane in range(3):
+   x=29+lane*76
+   pyxel.rect(x,34,62,109,13 if lane%2 else PAPER)
+   pyxel.rectb(x,34,62,109,INK)
+   pyxel.text(x+28,146,&#x27;ASD&#x27;[lane],INK)
+   pyxel.circ(x+31,120,13,INK);pyxel.circ(x+31,120,11,PAPER)
+   pyxel.circ(x+31,120,3,RED)
+  for lane,y,index in self.notes:
+   x=60+lane*76
+   pyxel.tri(x-10,y-4,x+10,y-4,x,y+8,INK)
+   pyxel.tri(x-7,y-3,x+7,y-3,x,y+5,GOLD)
+   pyxel.circ(x,y+9,2,RED)
+  if self.flash:pyxel.line(17,158,239,158,GOLD)
+  cat(45,168,1,self.streak and self.frame//7%2)
+  pyxel.text(80,164,&#x27;A / S / D TO RING&#x27;,INK)
+  pyxel.text(80,177,&#x27;TAP A LANE AT THE RED DOT&#x27;,RED)
+  if self.state!=&#x27;playing&#x27;:
+   pyxel.rect(19,49,218,80,PAPER);pyxel.rectb(19,49,218,80,INK)
+   cat(56,69,1,1)
+   pyxel.text(95,65,{&#x27;title&#x27;:&#x27;BELL GARDEN&#x27;,&#x27;won&#x27;:&#x27;THE GARDEN SINGS&#x27;,&#x27;over&#x27;:&#x27;THE BELLS FELL SILENT&#x27;}[self.state],INK)
+   pyxel.text(95,82,&#x27;12 NOTES. 3 BELLS.&#x27;,RED)
+   pyxel.text(95,108,&#x27;TAP / SPACE TO PLAY&#x27; if self.state==&#x27;title&#x27; else &#x27;TAP / SPACE TO REPLAY&#x27;,INK)
+Game()
+" gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let code=b.dataset.key;let key=code.slice(-1).toLowerCase(); b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code,bubbles:true})))})</script></body></html>

@@ -1,0 +1,63 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Magnet Maze · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>MAGNET MAZE</h1><p class="caption">Switch polarity and steer to the golden gate. Arrows / WASD to move. Tap the screen to begin.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Magnet Maze
+# desc: Turn polarity to pull your way through three gates.
+import pyxel,math
+from pyxel.cube import Node, Camera, Mat4, Vec3, Shading
+W,H=240,180
+class Scene(Node):
+ def __init__(self,g):
+  super().__init__();self.g=g;self.camera=Camera();self.camera.clear_color=1;self.shading=Shading(pyxel.colors)
+  self.camera.transform=Mat4.look_at(Vec3(0,175,130),Vec3(0,0,0))
+ def on_draw(self):
+  g=self.g;t=pyxel.frame_count
+  self.box(Mat4.from_translation(Vec3(0,-6,0)),Vec3(185,8,185),1)
+  self.depth_write(False);self.depth_offset(-.5)
+  for q in range(-80,81,20):
+   self.line(Vec3(q,0,-80),Vec3(q,0,80),5);self.line(Vec3(-80,0,q),Vec3(80,0,q),5)
+  # three color-coded magnetic pillars and their fields
+  for i,(x,z,p) in enumerate(g.poles):
+   col=12 if p&gt;0 else 8
+   self.box(Mat4.from_translation(Vec3(x,11,z)),Vec3(15,23,15),col)
+   self.sphere(Vec3(x,25+math.sin(t*.09+i)*2,z),5,col)
+   if t%6&lt;3:self.circb(Vec3(x,3,z),13,col)
+  self.sphere(Vec3(69,11,67),9,10);self.sphere(Vec3(69,11,67),3,7)
+  x,z=g.x,g.z
+  self.sphere(Vec3(x,8,z),7,12 if g.charge&gt;0 else 8)
+  self.sphere(Vec3(x,14,z),2,7)
+  self.boxb(Mat4.from_translation(Vec3(x,8,z)),Vec3(17,17,17),7)
+class Game:
+ def __init__(self):
+  pyxel.init(W,H,title=&#x27;Magnet Maze&#x27;,fps=30);self.reset();self.scene=Scene(self);pyxel.run(self.update,self.draw)
+ def reset(self):
+  self.x,self.z=-68.,-66.;self.vx,self.vz=0.,0.;self.charge=1;self.frame=0;self.state=&#x27;title&#x27;
+  self.poles=[(-35,-35,1),(28,-27,-1),(24,42,1)]
+ def update(self):
+  if self.state!=&#x27;playing&#x27;:
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):self.reset();self.state=&#x27;playing&#x27;
+   self.scene.update();return
+  self.frame+=1
+  if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):self.charge*=-1
+  dx=int(pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT))-int(pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT))
+  dz=int(pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_DOWN))-int(pyxel.btn(pyxel.KEY_W) or pyxel.btn(pyxel.KEY_UP) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_UP))
+  ax,az=dx*.22,dz*.22
+  for x,z,p in self.poles:
+   vx,vz=x-self.x,z-self.z;d=max(12,math.hypot(vx,vz));a=-self.charge*p*min(.4,210/(d*d))
+   ax+=vx/d*a;az+=vz/d*a
+  self.vx=max(-2.5,min(2.5,(self.vx+ax)*.94));self.vz=max(-2.5,min(2.5,(self.vz+az)*.94))
+  self.x=max(-78,min(78,self.x+self.vx));self.z=max(-78,min(78,self.z+self.vz))
+  if (self.x-69)**2+(self.z-67)**2&lt;180:self.state=&#x27;won&#x27;
+  if self.frame&gt;30*70:self.state=&#x27;over&#x27;
+  self.scene.update()
+ def draw(self):
+  pyxel.cls(1);self.scene.draw(0,0,W,H)
+  pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,5)
+  pyxel.text(8,7,&#x27;MAGNET MAZE&#x27;,7);pyxel.text(113,7,&#x27;POLARITY %s&#x27;%(&#x27;+&#x27; if self.charge&gt;0 else &#x27;-&#x27;),12 if self.charge&gt;0 else 8)
+  pyxel.text(204,7,&#x27;%02d&#x27;%max(0,70-self.frame//30),14)
+  pyxel.rect(0,159,W,21,1);pyxel.line(0,158,W,158,5)
+  pyxel.text(8,166,&#x27;ARROWS MOVE  /  SPACE OR TAP FLIPS&#x27;,7)
+  if self.state!=&#x27;playing&#x27;:
+   pyxel.rect(21,59,198,63,1);pyxel.rectb(21,59,198,63,10)
+   pyxel.text(70,69,&#x27;A FIELD OF FORCES&#x27;,7)
+   pyxel.text(60,84,{&#x27;title&#x27;:&#x27;REACH THE GOLDEN GATE&#x27;,&#x27;won&#x27;:&#x27;YOU FOUND THE WAY OUT&#x27;,&#x27;over&#x27;:&#x27;THE FIELD RESET&#x27;}[self.state],10)
+   pyxel.text(72,105,&#x27;TAP / SPACE TO START&#x27; if self.state==&#x27;title&#x27; else &#x27;TAP / SPACE TO REPLAY&#x27;,7)
+Game()
+" gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let key=b.dataset.key; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code:key,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code:key,bubbles:true})))})</script></body></html>

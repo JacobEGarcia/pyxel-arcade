@@ -1,0 +1,108 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Lucky Cat Koban Toss · Pyxel Cube</title><style>html,body{margin:0;background:#f2eee4;color:#252631;font-family:system-ui}.shell{max-width:700px;margin:auto;padding:18px}h1{font-size:23px;letter-spacing:.08em}p{font-size:14px}#pyxel-screen{position:relative !important;height:60vh;min-height:320px;max-height:620px;background:#282a36;border:1px solid #555;border-radius:10px;overflow:hidden}#pyxel-screen canvas#canvas{position:absolute !important;inset:0}.control{display:flex;justify-content:center;gap:10px;margin:16px auto}button{border:1px solid #4b4b4b;border-radius:6px;background:#292b36;color:#fff;font:24px monospace;min-width:66px;min-height:58px;touch-action:none}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>LUCKY CAT / KOBAN TOSS</h1><p>Aim the cat’s coin toward three lacquer bowls. Nine throws to land all three.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="Space">TOSS</button><button data-key="ArrowRight">▶</button></div><p>Pyxel Cube 3.0 development preview. Internet needed to load the engine.</p></div><pyxel-run script="# title: Lucky Cat Courtyard
+# desc: A three-dimensional koban hunt through a small shrine garden.
+import pyxel,math
+from pyxel.cube import Camera,Mat4,Node,Shading,Vec3
+W,H=320,240
+PAPER=7;INK=1;RED=8;GOLD=10
+
+def block(node,x,y,z,w,h,d,c):node.box(Mat4.from_translation(Vec3(x,y,z)),Vec3(w,h,d),c)
+def cat3(node,x,z,turn=0):
+ # Traditional porcelain figurine: ears, raised right paw, red collar, central koban.
+ block(node,x,10,z,15,19,12,PAPER)
+ block(node,x,22,z,16,13,13,PAPER)
+ block(node,x-6,30,z,4,8,5,PAPER);block(node,x+6,30,z,4,8,5,PAPER)
+ block(node,x-6,31,z+3,2,3,1,RED);block(node,x+6,31,z+3,2,3,1,RED)
+ block(node,x-4,23,z+7,2,2,1,INK);block(node,x+4,23,z+7,2,2,1,INK)
+ block(node,x,20,z+7,2,2,1,RED)
+ block(node,x,15,z+7,14,3,1,RED)
+ # paw above shoulder, beside face
+ block(node,x+10,23+turn,z+2,5,17,5,PAPER)
+ block(node,x+10,33+turn,z+2,7,6,5,PAPER)
+ block(node,x,9,z+7,10,10,2,INK)
+ block(node,x,9,z+8,8,8,1,GOLD)
+ block(node,x,8,z+9,4,1,1,INK)
+
+class Range(Node):
+ def __init__(self,g):
+  super().__init__();self.g=g;self.camera=Camera();self.camera.clear_color=PAPER;self.camera.far=900;self.shading=Shading(pyxel.colors)
+  self.camera.transform=Mat4.look_at(Vec3(120,135,175),Vec3(0,10,-25))
+ def on_draw(self):
+  g=self.g; t=pyxel.frame_count
+  block(self,0,-5,0,230,10,210,13)
+  self.depth_write(False);self.depth_offset(-.4)
+  for q in range(-100,101,20):
+   self.line(Vec3(q,.3,-96),Vec3(q,.3,96),5)
+   self.line(Vec3(-105,.3,q),Vec3(105,.3,q),5)
+  cat3(self,0,72,2 if g.throw&gt;0 else (t//15)%2)
+  # Three red lacquer bowls on porcelain plinths, with moving red targets.
+  for i,(x,z) in enumerate(g.targets):
+   hit=i in g.hit
+   block(self,x,5,z,26,10,26,7)
+   block(self,x,11,z,21,3,21,1)
+   block(self,x,15,z,19,4,19,8 if not hit else 5)
+   block(self,x,19,z,14,3,14,1)
+   if not hit:
+    self.sphere(Vec3(x,25+2*math.sin(t*.07+i),z),3,8)
+  # The coin in flight is a solid gold disc, animated in real 3D.
+  if g.throw:
+   u=1-g.throw/26
+   tx,tz=g.throw_target
+   x=tx*u;z=72+(tz-72)*u;y=34+35*math.sin(math.pi*u)
+   block(self,x,y,z,9,9,2,10)
+   block(self,x,y,z+2,3,1,1,1)
+  # Aim line is a shallow charcoal guide; the actual target flashes when aligned.
+  theta=math.radians(g.aim)
+  endpoint=Vec3(math.sin(theta)*125,1,72-math.cos(theta)*125)
+  self.line(Vec3(0,1,65),endpoint,1)
+  self.sphere(endpoint,3,8)
+
+class Game:
+ def __init__(self):
+  pyxel.init(W,H,title=&#x27;Lucky Cat Koban Toss&#x27;,fps=30)
+  self.scene=Range(self);self.reset()
+  pyxel.run(self.update,self.draw)
+ def reset(self):
+  self.targets=[(-56,-44),(0,-70),(57,-38)]
+  self.hit=set();self.aim=0.;self.throw=0;self.throw_target=(0.,0.);self.throw_hit=-1
+  self.shots=9;self.time=30*65;self.state=&#x27;title&#x27;;self.score=0
+ def update(self):
+  if self.state!=&#x27;playing&#x27;:
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):
+    self.reset();self.state=&#x27;playing&#x27;
+   self.scene.update();return
+  direction=int(bool(pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT)))-int(bool(pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT)))
+  self.aim=max(-45,min(45,self.aim+direction*1.35))
+  if self.throw:
+   self.throw-=1
+   if not self.throw and self.throw_hit&gt;=0:
+    self.hit.add(self.throw_hit);self.score+=100;self.throw_hit=-1
+  elif self.shots and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A)):
+   self.shots-=1;self.throw=26
+   best=100;idx=-1
+   for i,(x,z) in enumerate(self.targets):
+    if i in self.hit:continue
+    angle=math.degrees(math.atan2(x,72-z))
+    miss=abs(angle-self.aim)
+    if miss&lt;best:best=miss;idx=i
+   self.throw_hit=idx if best&lt;6.5 else -1
+   self.throw_target=self.targets[idx] if self.throw_hit&gt;=0 else (math.sin(math.radians(self.aim))*145,72-math.cos(math.radians(self.aim))*145)
+  self.time-=1
+  if len(self.hit)==3:self.state=&#x27;won&#x27;
+  elif self.time&lt;=0 or (self.shots==0 and not self.throw):self.state=&#x27;over&#x27;
+  self.scene.update()
+ def draw(self):
+  pyxel.cls(PAPER);self.scene.draw(0,0,W,H)
+  pyxel.rect(0,0,W,31,1);pyxel.line(0,30,W,30,8)
+  pyxel.text(8,7,&#x27;LUCKY CAT / KOBAN TOSS&#x27;,7)
+  pyxel.text(8,19,&#x27;BOWLS %d/3&#x27;%len(self.hit),10)
+  pyxel.text(124,19,&#x27;COINS %d&#x27;%self.shots,7)
+  pyxel.text(252,19,&#x27;TIME %02d&#x27;%max(0,self.time//30),7)
+  pyxel.rect(0,H-23,W,23,1);pyxel.line(0,H-24,W,H-24,8)
+  pyxel.text(8,H-15,&#x27;LEFT / RIGHT: AIM  -  TAP / SPACE: TOSS&#x27;,7)
+  if self.state!=&#x27;playing&#x27;:
+   pyxel.rect(34,81,252,77,1);pyxel.rectb(34,81,252,77,8)
+   pyxel.text(101,93,&#x27;KOBAN TOSS&#x27;,7)
+   pyxel.text(65,115,{&#x27;title&#x27;:&#x27;THREE BOWLS. NINE COINS.&#x27;,&#x27;won&#x27;:&#x27;THREE PERFECT LANDINGS!&#x27;,&#x27;over&#x27;:&#x27;TRY ANOTHER ROUND.&#x27;}[self.state],10)
+   pyxel.text(84,142,&#x27;TAP / SPACE TO &#x27;+(&#x27;START&#x27; if self.state==&#x27;title&#x27; else &#x27;REPLAY&#x27;),7)
+Game()
+"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let code=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key:code==='Space'?' ':code,code,bubbles:true}))});for(let ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key:code==='Space'?' ':code,code,bubbles:true})))})</script></body></html>

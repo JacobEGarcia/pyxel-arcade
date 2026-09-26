@@ -1,0 +1,85 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Orbit Orchard · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>ORBIT ORCHARD</h1><p class="caption">Collect ten glowing fruit before the light fades. Arrows / WASD or the buttons below. Tap the screen to begin.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Orbit Orchard
+# desc: Collect glowing fruit in a rotating 3D orchard.
+import pyxel, math, random
+from pyxel.cube import Camera, Mat4, Node, Shading, Vec3
+
+MODE = &#x27;orchard&#x27;
+W,H=240,180
+random.seed(8)
+
+class World(Node):
+    def __init__(self, game):
+        super().__init__(); self.game=game
+        self.shading=Shading(pyxel.colors); self.camera=Camera()
+        self.camera.clear_color=1; self.camera.far=1500
+        self.camera.transform=Mat4.look_at(Vec3(145,150,210),Vec3(0,0,0))
+    def on_draw(self):
+        g=self.game; t=pyxel.frame_count
+        # a dark tiled stage with readable edging
+        self.box(Mat4.from_translation(Vec3(0,-6,0)),Vec3(170,10,170),1)
+        self.depth_write(False); self.depth_offset(-0.5)
+        for q in range(-80,81,20):
+            self.line(Vec3(q,0,-80),Vec3(q,0,80),5)
+            self.line(Vec3(-80,0,q),Vec3(80,0,q),5)
+        for p in g.plants:
+            x,z=p
+            self.box(Mat4.from_translation(Vec3(x,8,z)),Vec3(3,16,3),4)
+            self.box(Mat4.from_translation(Vec3(x,19,z)),Vec3(15,11,15),11)
+        for i,(x,z,phase) in enumerate(g.fruit):
+            if i in g.taken: continue
+            y=10+3*math.sin(t*.09+phase)
+            self.sphere(Vec3(x,y,z),5,10 if i%3 else 14)
+            self.sphere(Vec3(x-1,y+3,z),1.4,7)
+        # avatar with two ears and a luminous center
+        x,z=g.x,g.z
+        self.box(Mat4.from_translation(Vec3(x,7,z)),Vec3(11,13,10),12)
+        self.box(Mat4.from_translation(Vec3(x-4,16,z)),Vec3(3,8,3),12)
+        self.box(Mat4.from_translation(Vec3(x+4,16,z)),Vec3(3,8,3),12)
+        self.sphere(Vec3(x,10,z+5),2.6,7)
+
+class Game:
+    def __init__(self):
+        pyxel.init(W,H,title=&#x27;Orbit Orchard&#x27;,fps=30)
+        self.reset(); self.scene=World(self)
+        pyxel.sounds[0].set(&#x27;c4e4g4c4&#x27;,&#x27;p&#x27;,&#x27;6&#x27;,&#x27;n&#x27;,12)
+        pyxel.sounds[1].set(&#x27;c3a2&#x27;,&#x27;p&#x27;,&#x27;5&#x27;,&#x27;n&#x27;,14)
+        pyxel.run(self.update,self.draw)
+    def reset(self):
+        self.x=0.;self.z=0.;self.score=0;self.taken=set();self.time=30*45;self.state=&#x27;title&#x27;
+        self.plants=[(-64,-60),(58,-60),(-63,52),(57,57),(0,-50)]
+        self.fruit=[(-42,-37,0),(26,-50,1),(49,-12,2),(38,38,3),(-12,52,4),(-49,16,5),(5,4,6),(-18,-18,7),(-8,-59,8),(62,55,9)]
+    def update(self):
+        if self.state!=&#x27;playing&#x27;:
+            if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                self.reset();self.state=&#x27;playing&#x27;
+            self.scene.update();return
+        dx=(pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT))-(pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT))
+        dz=(pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_DOWN))-(pyxel.btn(pyxel.KEY_W) or pyxel.btn(pyxel.KEY_UP) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_UP))
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            mx,my=pyxel.mouse_x,pyxel.mouse_y
+            if my&lt;155:
+                dx+= (1 if mx&gt;W*.55 else -1 if mx&lt;W*.45 else 0)
+                dz+= (1 if my&gt;H*.57 else -1 if my&lt;H*.43 else 0)
+        mag=max(1,math.hypot(dx,dz));self.x=max(-76,min(76,self.x+dx*2.3/mag));self.z=max(-76,min(76,self.z+dz*2.3/mag))
+        for i,(x,z,_) in enumerate(self.fruit):
+            if i not in self.taken and (x-self.x)**2+(z-self.z)**2&lt;115:
+                self.taken.add(i);self.score+=1;pyxel.play(0,0)
+        self.time-=1
+        if self.score==len(self.fruit): self.state=&#x27;won&#x27;;pyxel.play(0,0)
+        elif self.time&lt;=0: self.state=&#x27;over&#x27;;pyxel.play(0,1)
+        self.scene.update()
+    def draw(self):
+        pyxel.cls(1);self.scene.draw(0,0,W,H)
+        pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,5)
+        pyxel.text(8,7,&#x27;ORBIT ORCHARD&#x27;,7);pyxel.text(113,7,&#x27;FRUIT %02d/10&#x27;%self.score,10)
+        pyxel.text(201,7,&#x27;%02d&#x27;%max(0,self.time//30),14)
+        pyxel.rect(0,159,W,21,1);pyxel.line(0,158,W,158,5)
+        pyxel.text(8,166,&#x27;ARROWS / WASD TO MOVE  -  GET ALL TEN&#x27;,7)
+        if self.state!=&#x27;playing&#x27;:
+            pyxel.rect(22,59,196,62,1);pyxel.rectb(22,59,196,62,10)
+            pyxel.text(54,70,&#x27;THE ORCHARD IS WAITING&#x27;,7)
+            line=&#x27;PICK UP ALL 10 FRUIT&#x27; if self.state==&#x27;title&#x27; else (&#x27;ALL FRUIT COLLECTED!&#x27; if self.state==&#x27;won&#x27; else &#x27;THE ORCHARD WENT DARK&#x27;)
+            pyxel.text(63,84,line,10)
+            pyxel.text(68,105,&#x27;TAP / SPACE TO START&#x27; if self.state==&#x27;title&#x27; else &#x27;TAP / SPACE TO REPLAY&#x27;,7)
+Game()
+" gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let key=b.dataset.key; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code:key,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code:key,bubbles:true})))})</script></body></html>
