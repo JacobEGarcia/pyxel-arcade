@@ -13,8 +13,6 @@ class Body(Node):
                          restitution=.05 if mass else .0,friction=.75)
   parent.add_child(self)
  def on_collide(self,other,contact):
-  if self.target and other in self.stage.shots:
-   self.stage.impact(self)
   if self.collider.mass:
    self.transform=Mat4.from_translation(contact.normal*contact.depth)*self.transform
    self.collider.velocity+=contact.delta_velocity
@@ -25,7 +23,7 @@ class Body(Node):
    self.sphere(Vec3(-3,4,5),2,7)
   else:
    self.box(Mat4.IDENTITY,self.size,self.color)
-   self.boxb(Mat4.IDENTITY,self.size,7 if self.target else 5)
+   self.boxb(Mat4.IDENTITY,self.size,7 if self.target and abs(self.world_transform.pos.x-self.stage.lanes[self.stage.aim])&lt;17 and self.stage.app.state==&#x27;playing&#x27; else 5)
 
 class Stage(Node):
  def __init__(self,app):
@@ -40,7 +38,7 @@ class Stage(Node):
   self.camera.transform=Mat4.look_at(eye,Vec3(0,35,0))
  def load(self,level):
   for node in list(self.children):node.destroy()
-  self.boxes=[];self.shots=[];self.level=level;self.fired=False;self.origin={};self.look()
+  self.boxes=[];self.shots=[];self.level=level;self.fired=False;self.origin={};self.lanes=[-45,45] if level==0 else ([-64,-33,33,64] if level==1 else [-50,-25,0,25,50]);self.aim=0;self.broken=set();self.look()
   Body(self,Vec3(0,-9,0),Vec3(280,18,240),1)
   # Three different physics structures: two staggered towers, a bridge,
   # and a stepped core whose capstones anchor the final target.
@@ -78,33 +76,35 @@ class Stage(Node):
   for q in range(-120,121,20):
    self.line(Vec3(q,.2,-110),Vec3(q,.2,110),5)
    self.line(Vec3(-130,.2,q),Vec3(130,.2,q),5)
- def impact(self,hit):
-  if hit.collider.mass:return
-  p=hit.world_transform.pos
+ def impact(self,lane):
+  if lane in self.broken:return
+  self.broken.add(lane)
+  x=self.lanes[lane]
+  # A shot releases one load-bearing column; the neighboring stack stays put.
   for box in self.boxes:
    q=box.world_transform.pos
-   # Disturb a local section, not the whole structure at the first shot.
-   if abs(q.x-p.x)&lt;32 and abs(q.z-p.z)&lt;37 and abs(q.y-p.y)&lt;27:
+   if abs(q.x-x)&lt;18:
     box.collider.mass=box.weight
     box.collider.gravity=9.8
-    box.collider.velocity+=Vec3((q.x-p.x)*.07,2.8,(q.z-p.z)*.07)
+    box.collider.velocity+=Vec3((1 if x&gt;=0 else -1)*5,5+(q.y*.018),-2)
+  self.app.flash=12
  def fire(self):
   a=self.app
-  if a.ammo&lt;=0:return
+  if a.ammo&lt;=0 or self.aim in self.broken:return
   a.ammo-=1
   if not self.fired:
-   self.fired=True
-   self.fired_at=pyxel.frame_count
+   self.fired=True;self.fired_at=pyxel.frame_count
+  x=self.lanes[self.aim]
   angle=math.radians(self.camera_angle)
-  direction=Vec3(-math.sin(angle),-.035,-math.cos(angle))
   start=Vec3(math.sin(angle)*125,49,math.cos(angle)*125)
-  # Aim at the nearer support in screen space; this keeps the limited-shot puzzle fair.
-  aim=min(self.boxes,key=lambda b:(b.world_transform.pos.x-start.x)**2+(b.world_transform.pos.z-start.z)**2)
-  self.impact(aim)
+  target=Vec3(x,19,0)
+  delta=target-start
+  length=max(1,math.sqrt(delta.x**2+delta.y**2+delta.z**2))
   shot=Body(self,start,Vec3.ZERO,14,8,radius=10)
-  shot.collider.velocity=direction*12
+  shot.collider.velocity=delta*(12/length)
   shot.collider.angular_velocity=Vec3(2,3,4)
   self.shots.append(shot)
+  self.impact(self.aim)
   pyxel.play(0,0)
  def assess(self):
   a=self.app
@@ -144,8 +144,10 @@ class Game:
     else:self.load(self.level+1);self.state=&#x27;playing&#x27;
    return
   s=self.stage
-  s.camera_angle+=int(pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT))*2
-  s.camera_angle-=int(pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT))*2
+  if pyxel.btnp(pyxel.KEY_RIGHT) or pyxel.btnp(pyxel.KEY_D) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT):s.aim=(s.aim+1)%len(s.lanes)
+  if pyxel.btnp(pyxel.KEY_LEFT) or pyxel.btnp(pyxel.KEY_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT):s.aim=(s.aim-1)%len(s.lanes)
+  s.camera_angle+=int(pyxel.btn(pyxel.KEY_E))*2
+  s.camera_angle-=int(pyxel.btn(pyxel.KEY_Q))*2
   s.camera_pitch=max(-15,min(55,s.camera_pitch+int(pyxel.btn(pyxel.KEY_UP))-int(pyxel.btn(pyxel.KEY_DOWN))))
   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):s.fire()
   s.look();s.update();s.assess()
@@ -154,11 +156,9 @@ class Game:
   # Stage clear requires removing a third of the stack; spent ammunition
   # still gets a short settling window before result is measured.
   cleared=sum(b.cleared for b in s.boxes)
-  if s.fired and cleared&gt;=max(6,len(s.boxes)//3):self.state=&#x27;stage&#x27;;self.score+=self.ammo*150
-  elif self.ammo==0 and self.timer&gt;420:
-   if cleared&gt;=4:
-    self.state=&#x27;stage&#x27;;self.score+=self.ammo*150
-   else:self.state=&#x27;over&#x27;
+  needed=[2,3,3][self.level]
+  if len(s.broken)&gt;=needed and self.timer&gt;45:self.state=&#x27;stage&#x27;;self.score+=self.ammo*150
+  elif self.ammo==0 and self.timer&gt;420:self.state=&#x27;over&#x27;
   
  def draw(self):
   pyxel.cls(1);self.stage.draw(0,0,W,H)
@@ -169,13 +169,14 @@ class Game:
   pyxel.text(132,7,&#x27;SCORE %05d&#x27;%self.score,14)
   pyxel.text(252,7,&#x27;SHOTS %d&#x27;%self.ammo,7)
   pyxel.text(132,18,&#x27;COMBO x%d&#x27;%max(1,self.combo//3+1),10)
+  pyxel.text(251,18,&#x27;AIM %d/%d&#x27;%(self.stage.aim+1,len(self.stage.lanes)),7)
   pyxel.rect(0,H-27,W,27,1);pyxel.line(0,H-27,W,H-27,5)
-  pyxel.text(8,H-19,&#x27;LEFT / RIGHT : ORBIT CAMERA    TAP / SPACE : FIRE&#x27;,7)
-  pyxel.text(8,H-10,&#x27;TOPPLE THE TOWERS. KEEP YOUR SHOTS.&#x27;,7)
+  pyxel.text(8,H-19,&#x27;LEFT / RIGHT : AIM   Q / E : ORBIT   SPACE : FIRE&#x27;,7)
+  pyxel.text(8,H-10,&#x27;HIT THE LIT SUPPORTS. KEEP YOUR SHOTS.&#x27;,7)
   if self.state!=&#x27;playing&#x27;:
    pyxel.rect(40,82,240,78,1);pyxel.rectb(40,82,240,78,10)
    pyxel.text(77,94,{&#x27;title&#x27;:&#x27;THREE STRUCTURES. LIMITED SHOTS.&#x27;,&#x27;stage&#x27;:&#x27;STRUCTURE DOWN. NEXT STAGE.&#x27;,&#x27;won&#x27;:&#x27;LAB COMPLETE. PERFECT CHAOS.&#x27;,&#x27;over&#x27;:&#x27;THE TOWER STILL STANDS.&#x27;}[self.state],7)
-   pyxel.text(83,116,{&#x27;title&#x27;:&#x27;MAKE THEM FALL FOR REAL&#x27;,&#x27;stage&#x27;:&#x27;YOUR SCORE CARRIES OVER&#x27;,&#x27;won&#x27;:&#x27;RUN IT BACK FOR A NEW SCORE&#x27;,&#x27;over&#x27;:&#x27;ORBIT, AIM, AND TRY AGAIN&#x27;}[self.state],10)
+   pyxel.text(83,116,{&#x27;title&#x27;:&#x27;MAKE THEM FALL FOR REAL&#x27;,&#x27;stage&#x27;:&#x27;YOUR SCORE CARRIES OVER&#x27;,&#x27;won&#x27;:&#x27;RUN IT BACK FOR A NEW SCORE&#x27;,&#x27;over&#x27;:&#x27;AIM AT A NEW SUPPORT AND TRY AGAIN&#x27;}[self.state],10)
    pyxel.text(88,141,&#x27;TAP / SPACE TO CONTINUE&#x27;,7)
 Game()
 " gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let code=b.dataset.key;let key=code==='KeyE'?'e':code==='Space'?' ':code; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code,bubbles:true})))})</script></body></html>
