@@ -87,6 +87,16 @@ class Stage(Node):
     box.collider.mass=box.weight
     box.collider.gravity=9.8
     box.collider.velocity+=Vec3((1 if x&gt;=0 else -1)*5,5+(q.y*.018),-2)
+  # Once enough pillars are gone, release the roof and remaining load; it
+  # falls into the damaged base rather than remaining frozen in midair.
+  if len(self.broken)==[2,3,3][self.level]:
+   self.last_hit=pyxel.frame_count
+   for box in self.boxes:
+    if box.collider.mass==0:
+     q=box.world_transform.pos
+     box.collider.mass=box.weight
+     box.collider.gravity=9.8
+     box.collider.velocity+=Vec3((q.x-x)*.025,0,0)
   self.app.flash=12
  def fire(self):
   a=self.app
@@ -157,7 +167,7 @@ class Game:
   # still gets a short settling window before result is measured.
   cleared=sum(b.cleared for b in s.boxes)
   needed=[2,3,3][self.level]
-  if len(s.broken)&gt;=needed and self.timer&gt;45:self.state=&#x27;stage&#x27;;self.score+=self.ammo*150
+  if len(s.broken)&gt;=needed and pyxel.frame_count-s.last_hit&gt;70:self.state=&#x27;stage&#x27;;self.score+=self.ammo*150
   elif self.ammo==0 and self.timer&gt;420:self.state=&#x27;over&#x27;
   
  def draw(self):
