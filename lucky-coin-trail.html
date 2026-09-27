@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Lucky Cat Coin Trail · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>LUCKY CAT COIN TRAIL</h1><p class="caption">Three little gardens. Guide the Lucky Cat figurine through each path to collect every koban coin. Tap to begin.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Lucky Cat: Coin Trail
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Lucky Cat Coin Trail · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>LUCKY CAT COIN TRAIL</h1><p class="caption">Three hand-built gardens. Find every koban, earn a time bonus, and open the path to the next. Arrows / WASD or the buttons below.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Lucky Cat: Coin Trail
 # desc: Guide the maneki-neko through a paper maze for koban coins.
 import pyxel, math, random
 # Shared Lucky Cat maneki-neko mark. Warm paper, charcoal ink, restrained red, gold coin.
@@ -30,12 +30,12 @@ def cat(cx,cy,scale=1,wave=0):
     up=int(bool(wave));rect(11,-2-up*3,6,19,INK);rect(12,-1-up*3,4,16,PAPER)
     circ(14,-4-up*3,4,INK);circ(14,-4-up*3,2,PAPER)
 
-W,H=256,192
+W,H=256,208
 random.seed(32)
 # Each level is a custom grid. X marks walls; C is the first cat position.
 MAPS=[
 [&quot;XXXXXXXXXXXXXXXX&quot;,&quot;XC.....X.......X&quot;,&quot;X.XXX..X.XXX...X&quot;,&quot;X...X.....X.X..X&quot;,&quot;X.X.XXXXX.X.X..X&quot;,&quot;X.X.......X....X&quot;,&quot;X.XXXX.XXX.XX..X&quot;,&quot;X......X.....X.X&quot;,&quot;X.XXX..X.XXX.X.X&quot;,&quot;X...X......X...X&quot;,&quot;X.X.XXXXXX.XXX.X&quot;,&quot;X..............X&quot;,&quot;XXXXXXXXXXXXXXXX&quot;],
-[&quot;XXXXXXXXXXXXXXXX&quot;,&quot;XC...X.........X&quot;,&quot;XXX..X.XXXXXX..X&quot;,&quot;X....X...X......X&quot;,&quot;X.XXXXX.X.XXXX.X&quot;,&quot;X.......X......X&quot;,&quot;X.XXXXX.XXXXX..X&quot;,&quot;X...X.....X....X&quot;,&quot;X.X.X.XXX.X.XX.X&quot;,&quot;X.X...X...X....X&quot;,&quot;X.XXXXX.XXXXXX.X&quot;,&quot;X..............X&quot;,&quot;XXXXXXXXXXXXXXXX&quot;],
+[&quot;XXXXXXXXXXXXXXXX&quot;,&quot;XC...X.........X&quot;,&quot;XXX..X.XXXXXX..X&quot;,&quot;X....X...X.....X&quot;,&quot;X.XXXXX.X.XXXX.X&quot;,&quot;X.......X......X&quot;,&quot;X.XXXXX.XXXXX..X&quot;,&quot;X...X.....X....X&quot;,&quot;X.X.X.XXX.X.XX.X&quot;,&quot;X.X...X...X....X&quot;,&quot;X.XXXXX.XXXXXX.X&quot;,&quot;X..............X&quot;,&quot;XXXXXXXXXXXXXXXX&quot;],
 [&quot;XXXXXXXXXXXXXXXX&quot;,&quot;XC.....X.......X&quot;,&quot;X.XXXX.X.XXXXX.X&quot;,&quot;X....X.X.....X.X&quot;,&quot;XXXX.X.XXXXX.X.X&quot;,&quot;X....X.....X...X&quot;,&quot;X.XXXXXXXXX.X.XX&quot;,&quot;X...X.......X..X&quot;,&quot;X.X.X.XXXXXXX..X&quot;,&quot;X.X...X........X&quot;,&quot;X.XXXXX.XXXXXX.X&quot;,&quot;X..............X&quot;,&quot;XXXXXXXXXXXXXXXX&quot;]]
 class Game:
  def __init__(self):
@@ -48,13 +48,16 @@ class Game:
   self.coins=set()
   spots=[(x,y) for y,row in enumerate(self.map) for x,c in enumerate(row) if c==&#x27;.&#x27; and (x,y)!=(1,1)]
   random.seed(100+l);self.coins=set(random.sample(spots,7+l*2));self.remaining=len(self.coins)
-  self.timer=30*(110+l*25);self.bump=0
+  self.timer=30*(90+l*15);self.bump=0;self.spark=[];self.level_bonus=0
  def update(self):
   if self.state!=&#x27;playing&#x27;:
    if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-    self.score=0;self.load(0);self.state=&#x27;playing&#x27;
+    if self.state==&#x27;clear&#x27;:self.load(self.level+1)
+    else:self.score=0;self.load(0)
+    self.state=&#x27;playing&#x27;
    return
   if self.bump:self.bump-=1
+  self.spark=[(x,y,life-1) for x,y,life in self.spark if life&gt;1]
   self.timer-=1
   if self.timer&lt;=0:self.state=&#x27;over&#x27;;pyxel.play(0,1);return
   dx=int(pyxel.btnp(pyxel.KEY_D,5,4) or pyxel.btnp(pyxel.KEY_RIGHT,5,4) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT,5,4))-int(pyxel.btnp(pyxel.KEY_A,5,4) or pyxel.btnp(pyxel.KEY_LEFT,5,4) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT,5,4))
@@ -71,15 +74,16 @@ class Game:
    if 0&lt;=yy&lt;len(self.map) and 0&lt;=xx&lt;len(self.map[yy]) and self.map[yy][xx]!=&#x27;X&#x27;:
     self.x,self.y=xx,yy;self.step+=1
     if (xx,yy) in self.coins:
-     self.coins.remove((xx,yy));self.score+=100;self.bump=7;pyxel.play(0,0)
+     self.coins.remove((xx,yy));self.score+=100;self.bump=9;self.spark.append((xx,yy,18));pyxel.play(0,0)
      if not self.coins:
-      if self.level==2:self.state=&#x27;won&#x27;
-      else:self.load(self.level+1)
+      self.level_bonus=self.timer//30*10;self.score+=self.level_bonus
+      self.state=&#x27;won&#x27; if self.level==2 else &#x27;clear&#x27;
  def draw(self):
   pyxel.cls(PAPER)
   pyxel.rect(0,0,W,27,INK);pyxel.text(8,7,&#x27;LUCKY CAT / COIN TRAIL&#x27;,PAPER)
   pyxel.text(8,18,&#x27;GARDEN %d/3&#x27;%(self.level+1),GOLD);pyxel.text(104,18,&#x27;%02d COINS&#x27;%len(self.coins),PAPER)
   pyxel.text(197,18,&#x27;%02ds&#x27;%(max(0,self.timer//30)),PAPER)
+  pyxel.line(16,30,240,30,RED if self.bump else GOLD)
   for y,row in enumerate(self.map):
    for x,c in enumerate(row):
     px,py=x*14+16,y*11+31
@@ -91,6 +95,10 @@ class Game:
      pyxel.pset(px+6,py+5,INK)
     else:
      pyxel.pset(px+6,py+5,13)
+  for sx,sy,life in self.spark:
+   px,py=sx*14+22,sy*11+36;d=18-life
+   for ax,ay in ((-1,0),(1,0),(0,-1),(0,1)):
+    pyxel.pset(px+ax*d//2,py+ay*d//2,GOLD if life&gt;9 else RED)
   # The maze player is a one-tile figurine, not the large menu illustration.
   px=self.x*14+16;py=self.y*11+31
   pyxel.rect(px+3,py+4,8,6,INK);pyxel.rect(px+4,py+4,6,5,PAPER)
@@ -99,12 +107,12 @@ class Game:
   pyxel.pset(px+5,py+5,INK);pyxel.pset(px+9,py+5,INK)
   pyxel.pset(px+7,py+7,RED);pyxel.pset(px+7,py+9,GOLD)
   pyxel.rect(px+11,py+1-(pyxel.frame_count//12%2),2,5,INK)
-  pyxel.rect(0,174,W,18,INK);pyxel.text(8,180,&#x27;ARROWS / WASD - COLLECT EVERY KOBAN&#x27;,PAPER)
+  pyxel.rect(0,177,W,31,INK);pyxel.text(8,181,&#x27;FORTUNE %04d&#x27;%self.score,PAPER);pyxel.text(154,181,(&#x27;01 / MAPLE&#x27;,&#x27;02 / STONE&#x27;,&#x27;03 / MOON&#x27;)[self.level],GOLD);pyxel.text(8,196,&#x27;ARROWS / WASD - COLLECT EVERY KOBAN&#x27;,PAPER)
   if self.state!=&#x27;playing&#x27;:
    pyxel.rect(29,60,198,86,PAPER);pyxel.rectb(29,60,198,86,INK)
    cat(61,82,1,1)
-   pyxel.text(97,78,{&#x27;title&#x27;:&#x27;COIN TRAIL&#x27;,&#x27;won&#x27;:&#x27;THREE GARDENS CLEAR&#x27;,&#x27;over&#x27;:&#x27;THE PATH WENT DARK&#x27;}[self.state],INK)
-   pyxel.text(97,92,&#x27;A LITTLE LUCK GOES FAR&#x27;,RED)
-   pyxel.text(97,124,&#x27;TAP / SPACE TO PLAY&#x27; if self.state==&#x27;title&#x27; else &#x27;TAP / SPACE TO REPLAY&#x27;,INK)
+   pyxel.text(97,78,{&#x27;title&#x27;:&#x27;COIN TRAIL&#x27;,&#x27;clear&#x27;:&#x27;GARDEN CLEARED&#x27;,&#x27;won&#x27;:&#x27;THREE GARDENS CLEAR&#x27;,&#x27;over&#x27;:&#x27;THE PATH WENT DARK&#x27;}[self.state],INK)
+   pyxel.text(97,92,&#x27;COLLECT EVERY KOBAN&#x27; if self.state==&#x27;title&#x27; else (&#x27;TIME BONUS +%d&#x27;%self.level_bonus if self.state in (&#x27;clear&#x27;,&#x27;won&#x27;) else &#x27;TRY THE PATH AGAIN&#x27;),RED)
+   pyxel.text(97,124,{&#x27;title&#x27;:&#x27;TAP / SPACE TO PLAY&#x27;,&#x27;clear&#x27;:&#x27;TAP / SPACE : NEXT&#x27;,&#x27;won&#x27;:&#x27;TAP / SPACE : REPLAY&#x27;,&#x27;over&#x27;:&#x27;TAP / SPACE : REPLAY&#x27;}[self.state],INK)
 Game()
 " gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let key=b.dataset.key; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code:key,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code:key,bubbles:true})))})</script></body></html>
