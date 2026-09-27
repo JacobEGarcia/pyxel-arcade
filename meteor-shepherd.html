@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Meteor Shepherd · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>METEOR SHEPHERD</h1><p class="caption">Orbit the central beacon. Deflect falling meteors before its three hearts run out. Tap to start.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Meteor Shepherd
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Meteor Shepherd · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>METEOR SHEPHERD</h1><p class="caption">Defend the beacon through three meteor waves. Orbit with Left / Right and catch falling meteors before five hearts run out. Tap to start.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Meteor Shepherd
 # desc: Orbit a beacon and intercept falling meteors.
 import pyxel,math,random
 from pyxel.cube import Node,Camera,Mat4,Vec3,Shading
@@ -23,6 +23,7 @@ class Scene(Node):
   for x,y,z,v in g.meteors:
    self.sphere(Vec3(x,y,z),6,8)
    self.sphere(Vec3(x,y+7,z),3,14)
+   self.line(Vec3(x,y+9,z),Vec3(x,y+19,z),8)
   for x,z,age in g.sparks:
    self.sphere(Vec3(x,4+age*.5,z),max(1,6-age*.3),10)
 class Game:
@@ -30,40 +31,47 @@ class Game:
   pyxel.init(W,H,title=&#x27;Meteor Shepherd&#x27;,fps=30);self.reset();self.scene=Scene(self)
   pyxel.sounds[0].set(&#x27;c4g4&#x27;,&#x27;p&#x27;,&#x27;6&#x27;,&#x27;n&#x27;,10);pyxel.run(self.update,self.draw)
  def reset(self):
-  self.angle=0.;self.hp=3;self.score=0;self.frame=0;self.state=&#x27;title&#x27;;self.meteors=[];self.sparks=[]
+  self.angle=0.;self.hp=5;self.score=0;self.wave=0;self.frame=0;self.state=&#x27;title&#x27;;self.meteors=[];self.sparks=[];self.spawn_index=0
+ def next_wave(self):
+  self.wave+=1;self.frame=0;self.meteors=[];self.sparks=[];self.spawn_index=0;self.angle=0.
  def update(self):
   if self.state!=&#x27;playing&#x27;:
-   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):self.reset();self.state=&#x27;playing&#x27;
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):
+    if self.state==&#x27;clear&#x27;:self.next_wave()
+    else:self.reset()
+    self.state=&#x27;playing&#x27;
    self.scene.update();return
   self.frame+=1
   left=pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT)
   right=pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT)
   if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):left=pyxel.mouse_x&lt;120;right=not left
-  self.angle+=(int(right)-int(left))*.07
-  if self.frame%max(16,38-self.score//3)==0:
-   theta=random.random()*math.tau;radius=random.choice([42,45,48]);self.meteors.append((radius*math.cos(theta),95.,radius*math.sin(theta),1+min(1.5,self.score*.04)))
+  self.angle+=(int(right)-int(left))*.09
+  # Twelve fixed telegraphed impacts per wave; gaps give the player time to cross the ring.
+  if self.frame%62==1 and self.spawn_index&lt;12:
+   theta=(self.spawn_index*(.38,.67,.91)[self.wave]+(.2,.7,1.1)[self.wave])%math.tau
+   self.meteors.append((45*math.cos(theta),95.,45*math.sin(theta),1.55+.12*self.wave));self.spawn_index+=1
   px,pz=45*math.cos(self.angle),45*math.sin(self.angle)
   updated=[]
   for x,y,z,v in self.meteors:
    y-=v
-   if y&lt;18 and (x-px)**2+(z-pz)**2&lt;190:
+   if y&lt;20 and (x-px)**2+(z-pz)**2&lt;280:
     self.score+=1;self.sparks.append((x,z,0));pyxel.play(0,0)
-   elif y&lt;4:
-    self.hp-=1
+   elif y&lt;4:self.hp-=1
    else:updated.append((x,y,z,v))
   self.meteors=updated;self.sparks=[(x,z,a+1) for x,z,a in self.sparks if a&lt;18]
   if self.hp&lt;=0:self.state=&#x27;over&#x27;
-  if self.score&gt;=15:self.state=&#x27;won&#x27;
+  elif self.spawn_index==12 and not self.meteors:self.state=&#x27;won&#x27; if self.wave==2 else &#x27;clear&#x27;
   self.scene.update()
  def draw(self):
   pyxel.cls(1);self.scene.draw(0,0,W,H)
-  pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,5)
-  pyxel.text(8,7,&#x27;METEOR SHEPHERD&#x27;,7);pyxel.text(132,7,&#x27;SAVE %02d/15&#x27;%self.score,10);pyxel.text(210,7,&#x27;H%d&#x27;%self.hp,8)
+  pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,(10,12,14)[self.wave])
+  pyxel.text(7,7,&#x27;METEOR SHEPHERD&#x27;,7);pyxel.text(99,18,&#x27;WAVE %d/3&#x27;%(self.wave+1),10)
+  pyxel.text(132,7,&#x27;SAVE %02d&#x27;%self.score,10);pyxel.text(186,7,&#x27;H%d&#x27;%self.hp,8)
   pyxel.rect(0,159,W,21,1);pyxel.line(0,158,W,158,5);pyxel.text(8,166,&#x27;LEFT / RIGHT TO ORBIT THE BEACON&#x27;,7)
   if self.state!=&#x27;playing&#x27;:
-   pyxel.rect(22,59,196,63,1);pyxel.rectb(22,59,196,63,10)
-   pyxel.text(62,70,&#x27;KEEP THE BEACON ALIVE&#x27;,7)
-   pyxel.text(60,85,{&#x27;title&#x27;:&#x27;INTERCEPT 15 METEORS&#x27;,&#x27;won&#x27;:&#x27;THE BEACON SURVIVED&#x27;,&#x27;over&#x27;:&#x27;THE BEACON WENT DARK&#x27;}[self.state],10)
-   pyxel.text(69,106,&#x27;TAP / SPACE TO START&#x27; if self.state==&#x27;title&#x27; else &#x27;TAP / SPACE TO REPLAY&#x27;,7)
+   pyxel.rect(22,55,196,75,1);pyxel.rectb(22,55,196,75,10)
+   pyxel.text(61,67,{&#x27;title&#x27;:&#x27;KEEP THE BEACON ALIVE&#x27;,&#x27;clear&#x27;:&#x27;THE BEACON HOLDS&#x27;,&#x27;won&#x27;:&#x27;THREE WAVES SURVIVED&#x27;,&#x27;over&#x27;:&#x27;THE BEACON WENT DARK&#x27;}[self.state],7)
+   pyxel.text(49,85,{&#x27;title&#x27;:&#x27;THREE METEOR WAVES&#x27;,&#x27;clear&#x27;:&#x27;THE NEXT STORM IS COMING&#x27;,&#x27;won&#x27;:&#x27;METEORS CAUGHT: %02d&#x27;%self.score,&#x27;over&#x27;:&#x27;METEORS CAUGHT: %02d&#x27;%self.score}[self.state],10)
+   pyxel.text(69,110,&#x27;TAP / SPACE TO &#x27;+(&#x27;START&#x27; if self.state==&#x27;title&#x27; else &#x27;NEXT&#x27; if self.state==&#x27;clear&#x27; else &#x27;REPLAY&#x27;),7)
 Game()
 " gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let key=b.dataset.key; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code:key,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code:key,bubbles:true})))})</script></body></html>
