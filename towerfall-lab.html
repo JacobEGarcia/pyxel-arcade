@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Towerfall Lab · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>TOWERFALL LAB</h1><p class="caption">Three stages of real 3D physics. Orbit the camera and topple towers with limited shots. Tap to start.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="Space">FIRE</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Towerfall Lab
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Towerfall Lab · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>TOWERFALL LAB</h1><p class="caption">Three stages of 3D demolition. Pick each glowing support, then watch it fall. Tap to start.</p><div id="pyxel-screen"></div><div class="control"><button data-key="ArrowLeft">◀</button><button data-key="Space">FIRE</button><button data-key="ArrowRight">▶</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Towerfall Lab
 # desc: Three-stage 3D physics demolition with combo scoring.
 import pyxel, math
 from pyxel.cube import Camera, Collider, Mat4, Node, Shading, Vec3
@@ -87,16 +87,7 @@ class Stage(Node):
     box.collider.mass=box.weight
     box.collider.gravity=9.8
     box.collider.velocity+=Vec3((1 if x&gt;=0 else -1)*5,5+(q.y*.018),-2)
-  # Once enough pillars are gone, release the roof and remaining load; it
-  # falls into the damaged base rather than remaining frozen in midair.
-  if len(self.broken)==[2,3,3][self.level]:
-   self.last_hit=pyxel.frame_count
-   for box in self.boxes:
-    if box.collider.mass==0:
-     q=box.world_transform.pos
-     box.collider.mass=box.weight
-     box.collider.gravity=9.8
-     box.collider.velocity+=Vec3((q.x-x)*.025,0,0)
+  if len(self.broken)==[2,3,3][self.level]:self.last_hit=pyxel.frame_count
   self.app.flash=12
  def fire(self):
   a=self.app
@@ -185,7 +176,7 @@ class Game:
   pyxel.text(8,H-10,&#x27;HIT THE LIT SUPPORTS. KEEP YOUR SHOTS.&#x27;,7)
   if self.state!=&#x27;playing&#x27;:
    pyxel.rect(40,82,240,78,1);pyxel.rectb(40,82,240,78,10)
-   pyxel.text(77,94,{&#x27;title&#x27;:&#x27;THREE STRUCTURES. LIMITED SHOTS.&#x27;,&#x27;stage&#x27;:&#x27;STRUCTURE DOWN. NEXT STAGE.&#x27;,&#x27;won&#x27;:&#x27;LAB COMPLETE. PERFECT CHAOS.&#x27;,&#x27;over&#x27;:&#x27;THE TOWER STILL STANDS.&#x27;}[self.state],7)
+   pyxel.text(77,94,{&#x27;title&#x27;:&#x27;THREE STRUCTURES. LIMITED SHOTS.&#x27;,&#x27;stage&#x27;:&#x27;SUPPORTS CLEARED. NEXT STAGE.&#x27;,&#x27;won&#x27;:&#x27;LAB COMPLETE. PERFECT CHAOS.&#x27;,&#x27;over&#x27;:&#x27;THE TOWER STILL STANDS.&#x27;}[self.state],7)
    pyxel.text(83,116,{&#x27;title&#x27;:&#x27;MAKE THEM FALL FOR REAL&#x27;,&#x27;stage&#x27;:&#x27;YOUR SCORE CARRIES OVER&#x27;,&#x27;won&#x27;:&#x27;RUN IT BACK FOR A NEW SCORE&#x27;,&#x27;over&#x27;:&#x27;AIM AT A NEW SUPPORT AND TRY AGAIN&#x27;}[self.state],10)
    pyxel.text(88,141,&#x27;TAP / SPACE TO CONTINUE&#x27;,7)
 Game()
