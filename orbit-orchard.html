@@ -49,7 +49,7 @@ class Game:
         pyxel.sounds[1].set(&#x27;c3a2&#x27;,&#x27;p&#x27;,&#x27;5&#x27;,&#x27;n&#x27;,14)
         pyxel.run(self.update,self.draw)
     def reset(self):
-        self.x=0.;self.z=0.;self.score=0;self.taken=set();self.time=30*(65-self.level*5);self.state=&#x27;title&#x27;;self.flash=0
+        self.x=0.;self.z=0.;self.score=0;self.taken=set();self.time=30*(90-self.level*5);self.state=&#x27;title&#x27;;self.flash=0
         self.plants=[(-64,-60),(58,-60),(-63,52),(57,57),(0,-50)]
         base=[(-42,-37,0),(26,-50,1),(49,-12,2),(38,38,3),(-12,52,4),(-49,16,5),(5,4,6),(-18,-18,7),(-8,-59,8),(62,55,9)]
         self.fruit=[((x+78+self.level*29)%153-76,(z+78+self.level*37)%153-76,phase) for x,z,phase in base]
@@ -84,6 +84,14 @@ class Game:
         pyxel.text(217,17,&#x27;%02d&#x27;%max(0,self.time//30),14)
         pyxel.rect(0,159,W,21,1);pyxel.line(0,158,W,158,5)
         pyxel.text(8,166,&#x27;ARROWS / WASD  -  COLLECT ALL TEN&#x27;,7)
+        # An actual orchard map, not a decorative compass: remaining fruit and the cat.
+        pyxel.rect(4,112,46,45,1);pyxel.rectb(4,112,46,45,10)
+        pyxel.text(8,115,&#x27;ORCHARD&#x27;,7)
+        for i,(fx,fz,_) in enumerate(self.fruit):
+            if i not in self.taken:pyxel.pset(8+int((fx+76)*.25),126+int((fz+76)*.19),10)
+        px=8+int((self.x+76)*.25);pz=126+int((self.z+76)*.19)
+        pyxel.rect(px-1,pz-1,3,3,7)
+        pyxel.text(7,151,&#x27;%02d LEFT&#x27;%(10-self.score),7)
         if self.flash:pyxel.rectb(1,26,W-2,132,10)
         if self.state!=&#x27;playing&#x27;:
             pyxel.rect(22,59,196,62,1);pyxel.rectb(22,59,196,62,10)
@@ -91,4 +99,5 @@ class Game:
             line=&#x27;PICK UP ALL 10 FRUIT&#x27; if self.state==&#x27;title&#x27; else (&#x27;ALL FRUIT COLLECTED!&#x27; if self.state==&#x27;won&#x27; and self.level&lt;2 else &#x27;ORCHARD COMPLETE!&#x27; if self.state==&#x27;won&#x27; else &#x27;THE ORCHARD WENT DARK&#x27;)
             pyxel.text(63,84,line,10)
             pyxel.text(66,105,&#x27;TAP / SPACE : START&#x27; if self.state==&#x27;title&#x27; else (&#x27;TAP / SPACE : NEXT ROUND&#x27; if self.state==&#x27;won&#x27; and self.level&lt;2 else &#x27;TAP / SPACE : REPLAY&#x27;),7)
-Game()" gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let key=b.dataset.key; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code:key,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code:key,bubbles:true})))})</script></body></html>
+Game()
+" gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let key=b.dataset.key; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code:key,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code:key,bubbles:true})))})</script></body></html>
