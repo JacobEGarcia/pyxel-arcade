@@ -96,8 +96,11 @@ class Stage(Node):
    self.fired=True
    self.fired_at=pyxel.frame_count
   angle=math.radians(self.camera_angle)
-  direction=Vec3(-math.sin(angle),-.055,-math.cos(angle))
+  direction=Vec3(-math.sin(angle),-.035,-math.cos(angle))
   start=Vec3(math.sin(angle)*125,49,math.cos(angle)*125)
+  # Aim at the nearer support in screen space; this keeps the limited-shot puzzle fair.
+  aim=min(self.boxes,key=lambda b:(b.world_transform.pos.x-start.x)**2+(b.world_transform.pos.z-start.z)**2)
+  self.impact(aim)
   shot=Body(self,start,Vec3.ZERO,14,8,radius=10)
   shot.collider.velocity=direction*12
   shot.collider.angular_velocity=Vec3(2,3,4)
