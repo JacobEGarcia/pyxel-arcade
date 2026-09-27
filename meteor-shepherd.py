@@ -23,6 +23,7 @@ class Scene(Node):
   for x,y,z,v in g.meteors:
    self.sphere(Vec3(x,y,z),6,8)
    self.sphere(Vec3(x,y+7,z),3,14)
+   self.line(Vec3(x,y+9,z),Vec3(x,y+19,z),8)
   for x,z,age in g.sparks:
    self.sphere(Vec3(x,4+age*.5,z),max(1,6-age*.3),10)
 class Game:
@@ -30,39 +31,46 @@ class Game:
   pyxel.init(W,H,title='Meteor Shepherd',fps=30);self.reset();self.scene=Scene(self)
   pyxel.sounds[0].set('c4g4','p','6','n',10);pyxel.run(self.update,self.draw)
  def reset(self):
-  self.angle=0.;self.hp=3;self.score=0;self.frame=0;self.state='title';self.meteors=[];self.sparks=[]
+  self.angle=0.;self.hp=5;self.score=0;self.wave=0;self.frame=0;self.state='title';self.meteors=[];self.sparks=[];self.spawn_index=0
+ def next_wave(self):
+  self.wave+=1;self.frame=0;self.meteors=[];self.sparks=[];self.spawn_index=0;self.angle=0.
  def update(self):
   if self.state!='playing':
-   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):self.reset();self.state='playing'
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):
+    if self.state=='clear':self.next_wave()
+    else:self.reset()
+    self.state='playing'
    self.scene.update();return
   self.frame+=1
   left=pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_LEFT)
   right=pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.GAMEPAD1_BUTTON_DPAD_RIGHT)
   if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):left=pyxel.mouse_x<120;right=not left
-  self.angle+=(int(right)-int(left))*.07
-  if self.frame%max(16,38-self.score//3)==0:
-   theta=random.random()*math.tau;radius=random.choice([42,45,48]);self.meteors.append((radius*math.cos(theta),95.,radius*math.sin(theta),1+min(1.5,self.score*.04)))
+  self.angle+=(int(right)-int(left))*.09
+  # Twelve fixed telegraphed impacts per wave; gaps give the player time to cross the ring.
+  if self.frame%62==1 and self.spawn_index<12:
+   theta=(self.spawn_index*(.38,.67,.91)[self.wave]+(.2,.7,1.1)[self.wave])%math.tau
+   self.meteors.append((45*math.cos(theta),95.,45*math.sin(theta),1.55+.12*self.wave));self.spawn_index+=1
   px,pz=45*math.cos(self.angle),45*math.sin(self.angle)
   updated=[]
   for x,y,z,v in self.meteors:
    y-=v
-   if y<18 and (x-px)**2+(z-pz)**2<190:
+   if y<20 and (x-px)**2+(z-pz)**2<280:
     self.score+=1;self.sparks.append((x,z,0));pyxel.play(0,0)
-   elif y<4:
-    self.hp-=1
+   elif y<4:self.hp-=1
    else:updated.append((x,y,z,v))
   self.meteors=updated;self.sparks=[(x,z,a+1) for x,z,a in self.sparks if a<18]
   if self.hp<=0:self.state='over'
-  if self.score>=15:self.state='won'
+  elif self.spawn_index==12 and not self.meteors:self.state='won' if self.wave==2 else 'clear'
   self.scene.update()
  def draw(self):
   pyxel.cls(1);self.scene.draw(0,0,W,H)
-  pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,5)
-  pyxel.text(8,7,'METEOR SHEPHERD',7);pyxel.text(132,7,'SAVE %02d/15'%self.score,10);pyxel.text(210,7,'H%d'%self.hp,8)
+  pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,(10,12,14)[self.wave])
+  pyxel.text(7,7,'METEOR SHEPHERD',7);pyxel.text(99,18,'WAVE %d/3'%(self.wave+1),10)
+  pyxel.text(132,7,'SAVE %02d'%self.score,10);pyxel.text(186,7,'H%d'%self.hp,8)
   pyxel.rect(0,159,W,21,1);pyxel.line(0,158,W,158,5);pyxel.text(8,166,'LEFT / RIGHT TO ORBIT THE BEACON',7)
   if self.state!='playing':
-   pyxel.rect(22,59,196,63,1);pyxel.rectb(22,59,196,63,10)
-   pyxel.text(62,70,'KEEP THE BEACON ALIVE',7)
-   pyxel.text(60,85,{'title':'INTERCEPT 15 METEORS','won':'THE BEACON SURVIVED','over':'THE BEACON WENT DARK'}[self.state],10)
-   pyxel.text(69,106,'TAP / SPACE TO START' if self.state=='title' else 'TAP / SPACE TO REPLAY',7)
+   pyxel.rect(22,55,196,75,1);pyxel.rectb(22,55,196,75,10)
+   pyxel.text(61,67,{'title':'KEEP THE BEACON ALIVE','clear':'THE BEACON HOLDS','won':'THREE WAVES SURVIVED','over':'THE BEACON WENT DARK'}[self.state],7)
+   pyxel.text(49,85,{'title':'THREE METEOR WAVES','clear':'THE NEXT STORM IS COMING','won':'METEORS CAUGHT: %02d'%self.score,'over':'METEORS CAUGHT: %02d'%self.score}[self.state],10)
+   pyxel.text(69,110,'TAP / SPACE TO '+('START' if self.state=='title' else 'NEXT' if self.state=='clear' else 'REPLAY'),7)
 Game()
