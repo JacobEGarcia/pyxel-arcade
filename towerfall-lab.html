@@ -8,11 +8,13 @@ COLORS=(8,14,11,9,10,12)
 class Body(Node):
  def __init__(self,parent,pos,size,color,mass=0,radius=0,target=False):
   super().__init__();self.transform=Mat4.from_translation(pos)
-  self.size=size;self.color=color;self.target=target;self.cleared=False
+  self.size=size;self.color=color;self.target=target;self.cleared=False;self.stage=parent;self.weight=mass
   self.collider=Collider(size=size,radius=radius,mass=mass,rolls=False,
                          restitution=.05 if mass else .0,friction=.75)
   parent.add_child(self)
  def on_collide(self,other,contact):
+  if self.target and other in self.stage.shots:
+   self.stage.impact(self)
   if self.collider.mass:
    self.transform=Mat4.from_translation(contact.normal*contact.depth)*self.transform
    self.collider.velocity+=contact.delta_velocity
@@ -76,6 +78,16 @@ class Stage(Node):
   for q in range(-120,121,20):
    self.line(Vec3(q,.2,-110),Vec3(q,.2,110),5)
    self.line(Vec3(-130,.2,q),Vec3(130,.2,q),5)
+ def impact(self,hit):
+  if hit.collider.mass:return
+  p=hit.world_transform.pos
+  for box in self.boxes:
+   q=box.world_transform.pos
+   # Disturb a local section, not the whole structure at the first shot.
+   if abs(q.x-p.x)&lt;32 and abs(q.z-p.z)&lt;37 and abs(q.y-p.y)&lt;27:
+    box.collider.mass=box.weight
+    box.collider.gravity=9.8
+    box.collider.velocity+=Vec3((q.x-p.x)*.07,2.8,(q.z-p.z)*.07)
  def fire(self):
   a=self.app
   if a.ammo&lt;=0:return
@@ -83,9 +95,6 @@ class Stage(Node):
   if not self.fired:
    self.fired=True
    self.fired_at=pyxel.frame_count
-   for box in self.boxes:
-    box.collider.gravity=9.8
-    box.collider.mass=2
   angle=math.radians(self.camera_angle)
   direction=Vec3(-math.sin(angle),-.055,-math.cos(angle))
   start=Vec3(math.sin(angle)*125,49,math.cos(angle)*125)
