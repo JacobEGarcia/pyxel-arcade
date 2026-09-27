@@ -37,54 +37,61 @@ class Game:
   pyxel.init(W,H,title='Lucky Cat Paw Parry',fps=30)
   self.reset();pyxel.sounds[0].mml('T250 O4 C8 G8');pyxel.sounds[1].mml('T130 O3 C8 R8 C8');pyxel.run(self.update,self.draw)
  def reset(self):
-  self.state='title';self.frame=0;self.score=0;self.combo=0;self.hearts=3;self.objects=[];self.parry=0;self.blinks=0;self.shake=0;self.finished=False
+  self.state='title';self.frame=0;self.score=0;self.combo=0;self.hearts=4;self.objects=[];self.parry=0;self.shake=0;self.wave=0;self.step=0;self.spawn_timer=0;self.saved=0
+  self.patterns=('CCFCCFCCFC','CFCCFCCFCF','CCFCCFCFCC')
+ def next_wave(self):
+  self.wave+=1;self.step=0;self.spawn_timer=0;self.objects=[];self.parry=0;self.state='playing'
  def update(self):
   if self.state!='playing':
-   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):self.reset();self.state='playing'
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A):
+    if self.state=='clear':self.next_wave()
+    else:self.reset();self.state='playing'
    return
   self.frame+=1
   if self.parry:self.parry-=1
   if self.shake:self.shake-=1
-  if self.frame%42==0 and self.frame<30*45:
-   self.objects.append({'x':256.,'y':94+random.randrange(-16,17),'kind':'coin' if random.random()>.23 else 'fish','speed':2.1+min(1.5,self.frame/600),'alive':True})
+  self.spawn_timer+=1
+  if self.step<len(self.patterns[self.wave]) and self.spawn_timer>=51:
+   kind='coin' if self.patterns[self.wave][self.step]=='C' else 'fish'
+   self.objects.append({'x':256.,'y':94+(-7,5,0,9,-4)[self.step%5],'kind':kind,'speed':3.05+self.wave*.2})
+   self.step+=1;self.spawn_timer=0
   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):self.parry=9
   for obj in list(self.objects):
    obj['x']-=obj['speed']
-   # Raised paw acts only during a small timing window.
    if 64<obj['x']<91 and self.parry>0:
     if obj['kind']=='coin':
-     self.score+=100+min(500,self.combo*35);self.combo+=1;pyxel.play(0,0)
-    else:
-     self.hearts-=1;self.combo=0;self.shake=8;pyxel.play(0,1)
+     self.score+=100+min(500,self.combo*35);self.combo+=1;self.saved+=1;pyxel.play(0,0)
+    else:self.hearts-=1;self.combo=0;self.shake=8;pyxel.play(0,1)
     self.objects.remove(obj)
    elif obj['x']<28:
     if obj['kind']=='coin':self.hearts-=1;self.combo=0;self.shake=8;pyxel.play(0,1)
     self.objects.remove(obj)
    if self.hearts<=0:self.state='over';return
-  if self.frame>=30*45 and not self.objects:self.state='won'
+  if self.step==len(self.patterns[self.wave]) and not self.objects:
+   self.state='won' if self.wave==2 else 'clear'
  def draw(self):
   pyxel.cls(PAPER)
   pyxel.rect(0,0,W,28,INK);pyxel.text(8,7,'LUCKY CAT / PAW PARRY',PAPER)
-  pyxel.text(8,18,'FORTUNE %04d'%self.score,GOLD);pyxel.text(104,18,'CHAIN %02d'%self.combo,PAPER);pyxel.text(210,18,'H%d'%self.hearts,RED)
-  for i in range(9):
-   x=8+i*30;pyxel.line(x,156,x+14,156,INK)
-  pyxel.rect(23,70,2,87,RED);pyxel.rect(95,70,2,87,RED)
-  cat(46,108,2,self.parry>0)
+  pyxel.text(8,18,'FORTUNE %04d'%self.score,GOLD);pyxel.text(117,18,'WAVE %d/3'%(self.wave+1),PAPER);pyxel.text(211,18,'H%d'%self.hearts,RED)
+  # Paper-garden framing and a fixed red timing zone. Fish are red X marks: let them pass.
+  pyxel.rect(0,29,W,4,(5,13,12)[self.wave]);pyxel.rect(0,166,W,7,(5,13,12)[self.wave])
+  for i in range(8):
+   x=8+i*34;pyxel.line(x,155,x+16,155,INK);pyxel.line(x+6,157,x+10,160,5)
+  pyxel.rect(65,69,25,75,13);pyxel.rectb(65,69,25,75,RED)
   pyxel.text(9,38,'THE PAW',INK);pyxel.text(17,47,'WINDOW',RED)
-  pyxel.rect(172,145,55,9,INK);pyxel.rect(175,146,49,6,GOLD)
-  pyxel.text(182,163,'BOWL',INK)
+  cat(46,108,2,self.parry>0)
+  pyxel.rect(172,145,55,9,INK);pyxel.rect(175,146,49,6,GOLD);pyxel.text(182,159,'BOWL',INK)
   for obj in self.objects:
    x,y=int(obj['x']),int(obj['y'])
    if obj['kind']=='coin':
     pyxel.circ(x,y,7,INK);pyxel.circ(x,y,5,GOLD);pyxel.line(x-2,y,x+2,y,INK)
    else:
-    pyxel.line(x-7,y-4,x+8,y+5,RED);pyxel.line(x+8,y-4,x-7,y+5,RED)
-    pyxel.circ(x,y,3,INK)
-  pyxel.rect(0,174,W,18,INK);pyxel.text(8,180,'TAP / SPACE TO RAISE THE PAW',PAPER)
+    pyxel.line(x-7,y-4,x+8,y+5,RED);pyxel.line(x+8,y-4,x-7,y+5,RED);pyxel.circ(x,y,3,INK)
+  pyxel.rect(0,174,W,18,INK);pyxel.text(8,180,'TAP AT RED BAND / LET RED X PASS',PAPER)
   if self.state!='playing':
-   pyxel.rect(16,52,224,91,PAPER);pyxel.rectb(16,52,224,91,INK)
-   cat(52,72,1,1)
-   pyxel.text(100,68,{'title':'PAW PARRY','won':'FORTUNE KEPT','over':'THE FORTUNE SLIPPED'}[self.state],INK)
-   pyxel.text(100,87,'BOUNCE COINS; AVOID X',RED)
-   pyxel.text(100,120,'TAP / SPACE TO START' if self.state=='title' else 'TAP / SPACE TO REPLAY',INK)
+   pyxel.rect(13,50,230,95,PAPER);pyxel.rectb(13,50,230,95,INK)
+   cat(43,80,1,1)
+   pyxel.text(85,66,{'title':'PAW PARRY','clear':'GARDEN CLEAR','won':'THREE GARDENS SAVED','over':'THE FORTUNE SLIPPED'}[self.state],INK)
+   pyxel.text(84,86,{'title':'CATCH GOLD / AVOID RED X','clear':'THE NEXT WAVE IS READY','won':'FORTUNE %04d'%self.score,'over':'TRY THE TIMING AGAIN'}[self.state],RED)
+   pyxel.text(85,120,'TAP / SPACE TO '+('START' if self.state=='title' else ('NEXT' if self.state=='clear' else 'REPLAY')),INK)
 Game()
