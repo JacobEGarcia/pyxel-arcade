@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Skyline Stack · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>SKYLINE STACK</h1><p class="caption">Catch moving floors with a single tap. Nine floors wins; one miss ends the run.</p><div id="pyxel-screen"></div><div class="control"><button data-key="Space" style="min-width:180px">DROP</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Skyline Stack
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"><title>Skyline Stack · Pyxel 3.0 preview</title><style>html,body{margin:0;background:#171b32;color:#faf7e9;font-family:monospace}.shell{max-width:700px;margin:0 auto;padding:18px}h1{font-size:22px;letter-spacing:3px}.caption{color:#b6b5db;font-size:13px;line-height:1.6}#pyxel-screen{height:60vh;min-height:320px;max-height:620px;background:#161726;border:1px solid #565b91;border-radius:12px;overflow:hidden}.control{display:flex;justify-content:center;gap:8px;margin-top:14px}button{background:#363958;color:white;border:1px solid #9a9ad4;border-radius:8px;font-size:19px;min-width:52px;height:50px;touch-action:none}button:active{background:#e89d66}div#pyxel-screen{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:60vh!important;min-height:320px!important;max-height:620px!important}canvas#canvas{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important}</style><script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@c8d2274daed4ad78226ba228112beeb8f142f01c/wasm/pyxel.js"></script></head><body><div class="shell"><h1>SKYLINE STACK</h1><p class="caption">Catch moving floors through three districts. Seven floors clears each skyline; a miss ends the run.</p><div id="pyxel-screen"></div><div class="control"><button data-key="Space" style="min-width:180px">DROP</button></div><p class="caption">Built with the unreleased Pyxel 3.0 development preview and its Pyxel Cube renderer. An internet connection loads the engine on first play.</p></div><pyxel-run script="# title: Skyline Stack
 # desc: Catch moving cubes above a nighttime city.
 import pyxel,math
 from pyxel.cube import Node,Camera,Mat4,Vec3,Shading
@@ -9,52 +9,64 @@ class Scene(Node):
   self.camera.transform=Mat4.look_at(Vec3(155,105,205),Vec3(0,48,0))
  def on_draw(self):
   g=self.g;t=pyxel.frame_count
-  self.box(Mat4.from_translation(Vec3(0,-5,0)),Vec3(170,10,120),1)
+  self.box(Mat4.from_translation(Vec3(0,-5,0)),Vec3(170,10,120),[1,5,2][g.district])
   self.depth_write(False);self.depth_offset(-.5)
   for x in range(-80,81,20):self.line(Vec3(x,0,-55),Vec3(x,0,55),5)
   for z in range(-40,41,20):self.line(Vec3(-80,0,z),Vec3(80,0,z),5)
   # downtown silhouette around the perimeter
   for i in range(11):
-   x=-75+i*15;h=11+(i*i*7)%20
-   self.box(Mat4.from_translation(Vec3(x,h/2,-48)),Vec3(10,h,9),5)
+   x=-75+i*15;h=11+(i*i*7+g.district*11)%30
+   self.box(Mat4.from_translation(Vec3(x,h/2,-48)),Vec3(10,h,9),[5,1,13][g.district])
+   if i%2==0:self.box(Mat4.from_translation(Vec3(x,h+2,-48)),Vec3(3,4,3),10)
   for i,(x,w) in enumerate(g.layers):
-   self.box(Mat4.from_translation(Vec3(x,5+i*10,0)),Vec3(w,10,29),[12,11,10,14,9][i%5])
+   self.box(Mat4.from_translation(Vec3(x,5+i*10,0)),Vec3(w,10,29),([12,11,10,14,9],[8,9,10,14,12],[13,6,7,10,14])[g.district][i%5])
    self.boxb(Mat4.from_translation(Vec3(x,5+i*10,0)),Vec3(w,10,29),7)
   if g.state==&#x27;playing&#x27;:
    h=5+len(g.layers)*10
-   self.box(Mat4.from_translation(Vec3(g.x,h,0)),Vec3(g.width,10,29),14)
+   self.box(Mat4.from_translation(Vec3(g.x,h,0)),Vec3(g.width,10,29),[14,8,10][g.district])
    self.boxb(Mat4.from_translation(Vec3(g.x,h,0)),Vec3(g.width,10,29),7)
    if t%15&lt;7:self.line(Vec3(g.layers[-1][0],h+9,-17),Vec3(g.layers[-1][0],h+9,17),10)
 class Game:
  def __init__(self):
   pyxel.init(W,H,title=&#x27;Skyline Stack&#x27;,fps=30);self.reset();self.scene=Scene(self);pyxel.sounds[0].set(&#x27;g3c4e4&#x27;,&#x27;p&#x27;,&#x27;6&#x27;,&#x27;n&#x27;,8);pyxel.run(self.update,self.draw)
  def reset(self):
-  self.layers=[(0.,55.)];self.x=0.;self.width=55.;self.speed=1.55;self.direction=1;self.misses=0;self.state=&#x27;title&#x27;;self.score=0
+  self.district=0;self.score=0;self.total=0;self.state=&#x27;title&#x27;;self.load(0)
+ def load(self,d):
+  self.district=d;self.layers=[(0.,62.)];self.x=-69.;self.width=62.;self.speed=1.45+d*.18;self.direction=1;self.floors=0;self.flash=0;self.lost=0
  def update(self):
   if self.state!=&#x27;playing&#x27;:
-   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):self.reset();self.state=&#x27;playing&#x27;
+   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+    if self.state==&#x27;clear&#x27;:self.load(self.district+1)
+    else:self.reset()
+    self.state=&#x27;playing&#x27;
    self.scene.update();return
+  if self.flash:self.flash-=1
   self.x+=self.speed*self.direction
-  if self.x&gt;69 or self.x&lt; -69:self.direction*=-1
+  if self.x&gt;69:self.x=69;self.direction=-1
+  if self.x&lt; -69:self.x=-69;self.direction=1
   if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN) or pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
    prev,pw=self.layers[-1];overlap=max(0,min(self.x+self.width/2,prev+pw/2)-max(self.x-self.width/2,prev-pw/2))
-   if overlap&lt;4:self.state=&#x27;over&#x27;
+   if overlap&lt;5:self.state=&#x27;over&#x27;
    else:
     left=max(self.x-self.width/2,prev-pw/2);center=left+overlap/2
-    self.layers.append((center,overlap));self.score+=1;pyxel.play(0,0)
-    self.width=overlap;self.x=-69 if self.score%2==0 else 69;self.direction=1 if self.x&lt;0 else -1
-    self.speed=min(3.7,self.speed+.22)
-    if self.score&gt;=9:self.state=&#x27;won&#x27;
+    self.layers.append((center,overlap));self.floors+=1;self.total+=1;self.score+=100+int(overlap*2);pyxel.play(0,0)
+    self.lost=self.width-overlap;self.flash=12;self.width=overlap;self.x=-69 if self.floors%2==0 else 69;self.direction=1 if self.x&lt;0 else -1
+    self.speed=min(3.1,self.speed+.11)
+    if self.floors&gt;=7:
+     self.score+=int(self.width)*10
+     self.state=&#x27;won&#x27; if self.district==2 else &#x27;clear&#x27;
   self.scene.update()
  def draw(self):
   pyxel.cls(1);self.scene.draw(0,0,W,H)
-  pyxel.rect(0,0,W,25,1);pyxel.line(0,24,W,24,5)
-  pyxel.text(8,7,&#x27;SKYLINE STACK&#x27;,7);pyxel.text(137,7,&#x27;FLOOR %02d/09&#x27;%self.score,10)
+  pyxel.rect(0,0,W,30,1);pyxel.line(0,29,W,29,8 if self.flash else 10)
+  pyxel.text(8,6,&#x27;SKYLINE STACK&#x27;,7);pyxel.text(150,6,&#x27;FLOOR %d/7&#x27;%self.floors,10)
+  pyxel.text(8,18,(&#x27;01 / DOCKS&#x27;,&#x27;02 / MARKET&#x27;,&#x27;03 / OBSERVATORY&#x27;)[self.district],8)
+  pyxel.text(153,18,&#x27;SCORE %04d&#x27;%self.score,7)
   pyxel.rect(0,159,W,21,1);pyxel.line(0,158,W,158,5);pyxel.text(8,166,&#x27;TAP / SPACE TO DROP THE NEXT FLOOR&#x27;,7)
   if self.state!=&#x27;playing&#x27;:
-   pyxel.rect(25,60,190,62,1);pyxel.rectb(25,60,190,62,10)
-   pyxel.text(69,70,&#x27;BUILD ABOVE THE CITY&#x27;,7)
-   pyxel.text(60,85,{&#x27;title&#x27;:&#x27;CATCH EACH MOVING FLOOR&#x27;,&#x27;won&#x27;:&#x27;NINE FLOORS / SKYLINE MADE&#x27;,&#x27;over&#x27;:&#x27;ONE FLOOR MISSED&#x27;}[self.state],10)
-   pyxel.text(71,106,&#x27;TAP / SPACE TO START&#x27; if self.state==&#x27;title&#x27; else &#x27;TAP / SPACE TO REPLAY&#x27;,7)
+   pyxel.rect(19,58,202,72,1);pyxel.rectb(19,58,202,72,10)
+   pyxel.text(67,70,{&#x27;title&#x27;:&#x27;BUILD A THREE-PART CITY&#x27;,&#x27;clear&#x27;:&#x27;DISTRICT COMPLETE&#x27;,&#x27;won&#x27;:&#x27;THE SKYLINE IS YOURS&#x27;,&#x27;over&#x27;:&#x27;THE FLOOR MISSED&#x27;}[self.state],7)
+   pyxel.text(48,89,{&#x27;title&#x27;:&#x27;SEVEN FLOORS PER DISTRICT&#x27;,&#x27;clear&#x27;:&#x27;STACK HELD / KEEP BUILDING&#x27;,&#x27;won&#x27;:&#x27;THREE DISTRICTS COMPLETE&#x27;,&#x27;over&#x27;:&#x27;TRY TO HOLD THE OVERLAP&#x27;}[self.state],10)
+   pyxel.text(69,111,&#x27;TAP / SPACE TO &#x27;+(&#x27;START&#x27; if self.state==&#x27;title&#x27; else (&#x27;NEXT&#x27; if self.state==&#x27;clear&#x27; else &#x27;REPLAY&#x27;)),7)
 Game()
 " gamepad="enabled"></pyxel-run><script>document.querySelectorAll('[data-key]').forEach(b=>{let code=b.dataset.key;let key=code==='KeyE'?'e':code==='Space'?' ':code; b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);document.dispatchEvent(new KeyboardEvent('keydown',{key,code,bubbles:true}))});for(const ev of ['pointerup','pointercancel','lostpointercapture']) b.addEventListener(ev,()=>document.dispatchEvent(new KeyboardEvent('keyup',{key,code,bubbles:true})))})</script></body></html>
