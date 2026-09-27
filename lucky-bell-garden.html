@@ -32,7 +32,7 @@ def cat(cx,cy,scale=1,wave=0):
 class Game:
  def __init__(self):
   pyxel.init(W,H,title=&#x27;Lucky Cat Bell Garden&#x27;,fps=30)
-  self.song=0;self.best=[0,0,0];self.state=&#x27;menu&#x27;;self.pulse=0;self.particles=[]
+  self.song=0;self.best=[0,0,0];self.state=&#x27;menu&#x27;;self.pulse=0;self.particles=[];self.hit_flash=[0,0,0];self.combo=0;self.score=0;self.life=6
   for i,m in enumerate([&#x27;T180 O4 C16 E16 G16&#x27;,&#x27;T180 O4 E16 G16 &gt; C16&#x27;,&#x27;T180 O4 G16 &gt; C16 E16&#x27;]):pyxel.sounds[i].mml(m)
   pyxel.sounds[3].mml(&#x27;T90 O3 G16 E16 C8&#x27;)
   pyxel.sounds[4].mml(&#x27;T210 O5 C16 G16 C16&#x27;)
